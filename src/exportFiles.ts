@@ -1,20 +1,37 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { FileExporter } from "./utils/fileUtils";
+import { FileExporter, ExportConfig } from "./utils/fileUtils";
 import { MarkdownGenerator } from "./utils/markdownGen";
+
+function getExportConfig(): ExportConfig {
+  const config = vscode.workspace.getConfiguration("exportFiles");
+
+  return {
+    ignore: config.get<string[]>("ignore", []),
+    ignoreExtensions: config.get<string[]>("ignoreExtensions", []),
+    outputFile: config.get<string>("outputFile", "project-files.md"),
+    recursive: config.get<boolean>("recursive", true),
+    includeStructure: config.get<boolean>("includeStructure", true),
+    includeStats: config.get<boolean>("includeStats", true),
+    maxFileSize: config.get<number>("maxFileSize", 1048576),
+  };
+}
 
 export async function exportFilesToMarkdown(folderPath: string) {
   try {
-    // 显示输入框让用户选择输出文件名
+    // Get configuration
+    const config = getExportConfig();
+
+    // Show input box for user to choose output filename
     const outputFileName = await vscode.window.showInputBox({
-      prompt: "请输入输出文件名",
-      value: "project-files.md",
+      prompt: "Enter output filename",
+      value: config.outputFile,
       validateInput: (value) => {
         if (!value || !value.trim()) {
-          return "文件名不能为空";
+          return "Filename cannot be empty";
         }
         if (!value.endsWith(".md")) {
-          return "文件名必须以.md结尾";
+          return "Filename must end with .md";
         }
         return null;
       },
@@ -24,30 +41,38 @@ export async function exportFilesToMarkdown(folderPath: string) {
       return;
     }
 
-    // 显示进度条
+    // Show progress bar
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "正在导出文件...",
+        title: "Exporting files...",
         cancellable: false,
       },
       async (progress) => {
         progress.report({ increment: 0 });
 
-        const fileExporter = new FileExporter(folderPath);
+        const fileExporter = new FileExporter(folderPath, config);
         const markdownGen = new MarkdownGenerator();
 
-        progress.report({ increment: 30, message: "扫描文件..." });
+        progress.report({ increment: 20, message: "Scanning files..." });
         const files = await fileExporter.getAllFiles();
 
-        progress.report({ increment: 60, message: "生成Markdown..." });
+        progress.report({
+          increment: 40,
+          message: "Generating directory structure...",
+        });
+        const directoryStructure = await fileExporter.getDirectoryStructure();
+
+        progress.report({ increment: 70, message: "Generating Markdown..." });
         const markdownContent = await markdownGen.generateMarkdown(
           folderPath,
           files,
-          outputFileName
+          outputFileName,
+          config,
+          directoryStructure
         );
 
-        progress.report({ increment: 90, message: "保存文件..." });
+        progress.report({ increment: 90, message: "Saving file..." });
         const outputPath = path.join(folderPath, outputFileName);
         await fileExporter.writeFile(outputPath, markdownContent);
 
@@ -57,11 +82,11 @@ export async function exportFilesToMarkdown(folderPath: string) {
 
     vscode.window
       .showInformationMessage(
-        `文件导出成功！保存至: ${outputFileName}`,
-        "打开文件"
+        `Files exported successfully! Saved to: ${outputFileName}`,
+        "Open File"
       )
       .then((selection) => {
-        if (selection === "打开文件") {
+        if (selection === "Open File") {
           vscode.workspace
             .openTextDocument(path.join(folderPath, outputFileName))
             .then((doc) => {
@@ -70,6 +95,6 @@ export async function exportFilesToMarkdown(folderPath: string) {
         }
       });
   } catch (error) {
-    vscode.window.showErrorMessage(`导出失败: ${error}`);
+    vscode.window.showErrorMessage(`Export failed: ${error}`);
   }
 }

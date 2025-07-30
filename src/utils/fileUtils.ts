@@ -15,42 +15,23 @@ export interface FileInfo {
   extension: string;
 }
 
+export interface ExportConfig {
+  ignore: string[];
+  ignoreExtensions: string[];
+  outputFile: string;
+  recursive: boolean;
+  includeStructure: boolean;
+  includeStats: boolean;
+  maxFileSize: number;
+}
+
 export class FileExporter {
   private basePath: string;
-  private config = {
-    ignore: [
-      "node_modules",
-      ".git",
-      ".next",
-      "dist",
-      "build",
-      "coverage",
-      ".env",
-      ".DS_Store",
-      "Thumbs.db",
-      ".vercel",
-    ],
-    ignoreExtensions: [
-      ".jpg",
-      ".jpeg",
-      ".png",
-      ".gif",
-      ".svg",
-      ".ico",
-      ".webp",
-      ".pdf",
-      ".zip",
-      ".rar",
-      ".7z",
-      ".ttf",
-      ".woff",
-      ".woff2",
-    ],
-    maxFileSize: 1024 * 1024, // 1MB
-  };
+  private config: ExportConfig;
 
-  constructor(basePath: string) {
+  constructor(basePath: string, config: ExportConfig) {
     this.basePath = basePath;
+    this.config = config;
   }
 
   async getAllFiles(): Promise<FileInfo[]> {
@@ -73,9 +54,16 @@ export class FileExporter {
         const stats = await stat(fullPath);
 
         if (stats.isDirectory()) {
-          await this.scanDirectory(fullPath, files);
+          // Only scan subdirectories when recursion is enabled
+          if (this.config.recursive) {
+            await this.scanDirectory(fullPath, files);
+          }
         } else if (stats.isFile()) {
-          if (stats.size > this.config.maxFileSize) {
+          // Check file size limit, 0 means no limit
+          if (
+            this.config.maxFileSize > 0 &&
+            stats.size > this.config.maxFileSize
+          ) {
             continue;
           }
 
@@ -91,29 +79,109 @@ export class FileExporter {
               extension: path.extname(fullPath).toLowerCase(),
             });
           } catch (error) {
-            // 跳过无法读取的文件
-            console.log(`跳过文件: ${fullPath}`);
+            // Skip files that cannot be read
+            console.log(`Skipping file: ${fullPath}`);
           }
         }
       }
     } catch (error) {
-      console.error(`无法读取目录: ${dir}`, error);
+      console.error(`Unable to read directory: ${dir}`, error);
     }
   }
 
   private shouldIgnore(filePath: string): boolean {
     const basename = path.basename(filePath);
     const ext = path.extname(filePath).toLowerCase();
+    const relativePath = path.relative(this.basePath, filePath);
 
-    return (
-      this.config.ignore.includes(basename) ||
-      this.config.ignoreExtensions.includes(ext) ||
-      filePath.includes("node_modules") ||
-      filePath.includes(".git")
-    );
+    // Check extensions
+    if (this.config.ignoreExtensions.includes(ext)) {
+      return true;
+    }
+
+    // Check ignore list, support wildcard matching
+    for (const pattern of this.config.ignore) {
+      if (
+        this.matchPattern(basename, pattern) ||
+        this.matchPattern(relativePath, pattern) ||
+        filePath.includes(pattern)
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private matchPattern(str: string, pattern: string): boolean {
+    // Simple wildcard matching, supports * and ?
+    if (!pattern.includes("*") && !pattern.includes("?")) {
+      return str === pattern;
+    }
+
+    const regexPattern = pattern
+      .replace(/\./g, "\\.")
+      .replace(/\*/g, ".*")
+      .replace(/\?/g, ".");
+
+    const regex = new RegExp(`^${regexPattern}$`);
+    return regex.test(str);
   }
 
   async writeFile(filePath: string, content: string): Promise<void> {
     await writeFile(filePath, content, "utf8");
+  }
+
+  async getDirectoryStructure(): Promise<string> {
+    if (!this.config.includeStructure) {
+      return "";
+    }
+
+    const structure: string[] = [];
+    await this.buildDirectoryTree(this.basePath, structure, "");
+    return structure.join("\n");
+  }
+
+  private async buildDirectoryTree(
+    dir: string,
+    structure: string[],
+    prefix: string
+  ): Promise<void> {
+    try {
+      const items = await readdir(dir);
+      const validItems: { name: string; isDirectory: boolean }[] = [];
+
+      for (const item of items) {
+        const fullPath = path.join(dir, item);
+
+        if (this.shouldIgnore(fullPath)) {
+          continue;
+        }
+
+        const stats = await stat(fullPath);
+        validItems.push({ name: item, isDirectory: stats.isDirectory() });
+      }
+
+      validItems
+        .sort((a, b) => {
+          // Directories come first
+          if (a.isDirectory && !b.isDirectory) return -1;
+          if (!a.isDirectory && b.isDirectory) return 1;
+          return a.name.localeCompare(b.name);
+        })
+        .forEach((item, index) => {
+          const isLast = index === validItems.length - 1;
+          const connector = isLast ? "└── " : "├── ";
+          structure.push(`${prefix}${connector}${item.name}`);
+
+          if (item.isDirectory && this.config.recursive) {
+            const newPrefix = prefix + (isLast ? "    " : "│   ");
+            const fullPath = path.join(dir, item.name);
+            this.buildDirectoryTree(fullPath, structure, newPrefix);
+          }
+        });
+    } catch (error) {
+      console.error(`Unable to read directory structure: ${dir}`, error);
+    }
   }
 }

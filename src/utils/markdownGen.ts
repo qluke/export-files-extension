@@ -1,5 +1,5 @@
 import * as path from "path";
-import { FileInfo } from "./fileUtils";
+import { FileInfo, ExportConfig } from "./fileUtils";
 
 export class MarkdownGenerator {
   private getLanguage(filePath: string): string {
@@ -39,50 +39,63 @@ export class MarkdownGenerator {
   async generateMarkdown(
     basePath: string,
     files: FileInfo[],
-    outputFileName: string
+    outputFileName: string,
+    config: ExportConfig,
+    directoryStructure?: string
   ): Promise<string> {
-    let content = `# 项目文件导出\n\n`;
-    content += `导出时间: ${new Date().toLocaleString()}\n\n`;
-    content += `源目录: \`${path.basename(basePath)}\`\n\n`;
-    content += `输出文件: \`${outputFileName}\`\n\n`;
+    let content = `# Project Files Export\n\n`;
+    content += `Export time: ${new Date().toLocaleString()}\n\n`;
+    content += `Source directory: \`${path.basename(basePath)}\`\n\n`;
+    content += `Output file: \`${outputFileName}\`\n\n`;
 
-    // 文件统计
-    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-    const extensionStats: { [key: string]: { count: number; size: number } } =
-      {};
-
-    files.forEach((file) => {
-      const ext = file.extension || "(无扩展名)";
-      if (!extensionStats[ext]) {
-        extensionStats[ext] = { count: 0, size: 0 };
-      }
-      extensionStats[ext].count++;
-      extensionStats[ext].size += file.size;
-    });
-
-    content += `## 文件统计\n\n`;
-    content += `- 总文件数: ${files.length}\n`;
-    content += `- 总大小: ${this.formatFileSize(totalSize)}\n\n`;
-
-    // 文件类型分布
-    if (Object.keys(extensionStats).length > 0) {
-      content += `### 文件类型分布\n\n`;
-      content += `| 扩展名 | 文件数 | 总大小 |\n`;
-      content += `| --- | --- | --- |\n`;
-
-      Object.entries(extensionStats)
-        .sort((a, b) => b[1].count - a[1].count)
-        .forEach(([ext, stats]) => {
-          content += `| ${ext} | ${stats.count} | ${this.formatFileSize(
-            stats.size
-          )} |\n`;
-        });
-
-      content += `\n`;
+    // Add directory structure
+    if (config.includeStructure && directoryStructure) {
+      content += `## Directory Structure\n\n`;
+      content += `\`\`\`\n`;
+      content += `${path.basename(basePath)}\n`;
+      content += directoryStructure;
+      content += `\n\`\`\`\n\n`;
     }
 
-    // 文件内容
-    content += `## 文件内容\n\n`;
+    // File statistics
+    if (config.includeStats) {
+      const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+      const extensionStats: { [key: string]: { count: number; size: number } } =
+        {};
+
+      files.forEach((file) => {
+        const ext = file.extension || "(no extension)";
+        if (!extensionStats[ext]) {
+          extensionStats[ext] = { count: 0, size: 0 };
+        }
+        extensionStats[ext].count++;
+        extensionStats[ext].size += file.size;
+      });
+
+      content += `## File Statistics\n\n`;
+      content += `- Total files: ${files.length}\n`;
+      content += `- Total size: ${this.formatFileSize(totalSize)}\n\n`;
+
+      // File type distribution
+      if (Object.keys(extensionStats).length > 0) {
+        content += `### File Type Distribution\n\n`;
+        content += `| Extension | Files | Total Size |\n`;
+        content += `| --- | --- | --- |\n`;
+
+        Object.entries(extensionStats)
+          .sort((a, b) => b[1].count - a[1].count)
+          .forEach(([ext, stats]) => {
+            content += `| ${ext} | ${stats.count} | ${this.formatFileSize(
+              stats.size
+            )} |\n`;
+          });
+
+        content += `\n`;
+      }
+    }
+
+    // File contents
+    content += `## File Contents\n\n`;
 
     for (const file of files) {
       const language = this.getLanguage(file.path);

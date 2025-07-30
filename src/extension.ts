@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { exportFilesToMarkdown } from "./exportFiles";
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("文件导出插件已激活");
+  console.log("Export Files Extension activated");
 
   const disposable = vscode.commands.registerCommand(
     "exportFiles.exportToMarkdown",
@@ -10,7 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (uri && uri.fsPath) {
         await exportFilesToMarkdown(uri.fsPath);
       } else {
-        vscode.window.showErrorMessage("请选择一个文件夹");
+        vscode.window.showErrorMessage("Please select a folder");
       }
     }
   );

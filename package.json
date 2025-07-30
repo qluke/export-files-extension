@@ -27,6 +27,116 @@
           "group": "7_modification"
         }
       ]
+    },
+    "configuration": {
+      "title": "Export Files Extension",
+      "properties": {
+        "exportFiles.ignore": {
+          "type": "array",
+          "default": [
+            "node_modules",
+            ".pnp",
+            ".pnp.js",
+            ".yarn",
+            "package-lock.json",
+            "pnpm-lock.yaml",
+            "yarn.lock",
+            "bun.lockb",
+            ".git",
+            ".next",
+            "out",
+            "dist",
+            "build",
+            "coverage",
+            "npm-debug.log*",
+            "yarn-debug.log*",
+            "yarn-error.log*",
+            ".DS_Store",
+            "Thumbs.db",
+            ".env",
+            ".env.local",
+            ".env.development.local",
+            ".env.test.local",
+            ".env.production.local",
+            ".vercel",
+            "*.tsbuildinfo",
+            "next-env.d.ts",
+            "sw.js",
+            "workbox-*.js",
+            "worker-*.js",
+            "sw.js.map",
+            "workbox-*.js.map",
+            "worker-*.js.map"
+          ],
+          "description": "List of directories and files to ignore"
+        },
+        "exportFiles.ignoreExtensions": {
+          "type": "array",
+          "default": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".svg",
+            ".ico",
+            ".webp",
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".ppt",
+            ".pptx",
+            ".xls",
+            ".xlsx",
+            ".zip",
+            ".rar",
+            ".7z",
+            ".tar",
+            ".gz",
+            ".ttf",
+            ".woff",
+            ".woff2",
+            ".eot",
+            ".otf",
+            ".pem",
+            ".dll",
+            ".exe",
+            ".bin",
+            ".mp4",
+            ".webm",
+            ".avi",
+            ".mov",
+            ".mp3",
+            ".wav",
+            ".ogg"
+          ],
+          "description": "List of file extensions to ignore"
+        },
+        "exportFiles.outputFile": {
+          "type": "string",
+          "default": "project-files.md",
+          "description": "Default output filename"
+        },
+        "exportFiles.recursive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to recursively scan subdirectories"
+        },
+        "exportFiles.includeStructure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to include directory structure in output"
+        },
+        "exportFiles.includeStats": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to include file statistics in output"
+        },
+        "exportFiles.maxFileSize": {
+          "type": "number",
+          "default": 1048576,
+          "description": "Maximum file size in bytes, files larger than this will be skipped, set to 0 for no limit"
+        }
+      }
     }
   },
   "scripts": {
