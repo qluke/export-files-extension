@@ -145,6 +145,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src",
+    "package": "pnpm vsce package --no-dependencies",
     "test": "vscode-test"
   },
   "devDependencies": {
