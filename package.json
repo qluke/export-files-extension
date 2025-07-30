@@ -3,6 +3,7 @@
   "displayName": "export-files-extension",
   "description": "Introducing the text to the Markdown text",
   "version": "0.0.1",
+  "publisher": "export-files-extension",
   "engines": {
     "vscode": "^1.102.0"
   },
