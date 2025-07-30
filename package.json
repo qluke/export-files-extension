@@ -14,10 +14,20 @@
   "contributes": {
     "commands": [
       {
-        "command": "export-files-extension.helloWorld",
-        "title": "Hello World"
+        "command": "exportFiles.exportToMarkdown",
+        "title": "exportToMarkdown",
+        "icon": "$(file-text)"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "exportFiles.exportToMarkdown",
+          "when": "explorerResourceIsFolder",
+          "group": "7_modification"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
