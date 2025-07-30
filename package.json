@@ -9,6 +9,14 @@
   "categories": [
     "Other"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qluke/export-files-extension.git"
+  },
+  "homepage": "https://github.com/qluke/export-files-extension#readme",
+  "bugs": {
+    "url": "https://github.com/qluke/export-files-extension/issues"
+  },
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
