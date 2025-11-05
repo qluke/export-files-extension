@@ -162,24 +162,27 @@ export class FileExporter {
         validItems.push({ name: item, isDirectory: stats.isDirectory() });
       }
 
-      validItems
-        .sort((a, b) => {
-          // Directories come first
-          if (a.isDirectory && !b.isDirectory) return -1;
-          if (!a.isDirectory && b.isDirectory) return 1;
-          return a.name.localeCompare(b.name);
-        })
-        .forEach((item, index) => {
-          const isLast = index === validItems.length - 1;
-          const connector = isLast ? "└── " : "├── ";
-          structure.push(`${prefix}${connector}${item.name}`);
+      // Sort items: directories first, then alphabetical
+      validItems.sort((a, b) => {
+        // Directories come first
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
 
-          if (item.isDirectory && this.config.recursive) {
-            const newPrefix = prefix + (isLast ? "    " : "│   ");
-            const fullPath = path.join(dir, item.name);
-            this.buildDirectoryTree(fullPath, structure, newPrefix);
-          }
-        });
+      // Process items sequentially with await for directories
+      for (let index = 0; index < validItems.length; index++) {
+        const item = validItems[index];
+        const isLast = index === validItems.length - 1;
+        const connector = isLast ? "└── " : "├── ";
+        structure.push(`${prefix}${connector}${item.name}`);
+
+        if (item.isDirectory && this.config.recursive) {
+          const newPrefix = prefix + (isLast ? "    " : "│   ");
+          const fullPath = path.join(dir, item.name);
+          await this.buildDirectoryTree(fullPath, structure, newPrefix);
+        }
+      }
     } catch (error) {
       console.error(`Unable to read directory structure: ${dir}`, error);
     }
