@@ -291,6 +291,35 @@ suite("Export Files Extension Test Suite", () => {
       assert.ok(!filePaths.some((p) => p.includes("test.js")));
       assert.ok(!filePaths.some((p) => p.includes("test.ts")));
     });
+
+    test("should use exact matching for directory names without wildcards", async () => {
+      // Create test files with "out" in their names
+      await writeFile(path.join(testWorkspace, "layout.tsx"), "export const Layout = () => {};");
+      await writeFile(path.join(testWorkspace, "routers.tsx"), "export const Router = () => {};");
+      await writeFile(path.join(testWorkspace, "output.txt"), "some output");
+
+      const exactMatchConfig: ExportConfig = {
+        ignore: ["out", "node_modules"],
+        ignoreExtensions: [],
+        outputFile: "test.md",
+        recursive: true,
+        includeStructure: true,
+        includeStats: true,
+        maxFileSize: 0,
+      };
+
+      const exporter = new FileExporter(testWorkspace, exactMatchConfig);
+      const files = await exporter.getAllFiles();
+      const filePaths = files.map((f) => f.relativePath);
+
+      // Should NOT exclude files that contain "out" in their name
+      assert.ok(filePaths.some((p) => p === "layout.tsx"), "layout.tsx should not be filtered");
+      assert.ok(filePaths.some((p) => p === "routers.tsx"), "routers.tsx should not be filtered");
+      assert.ok(filePaths.some((p) => p === "output.txt"), "output.txt should not be filtered");
+      
+      // Should exclude the "out" directory itself
+      assert.ok(!filePaths.some((p) => p.startsWith("out" + path.sep)), "files in out/ directory should be filtered");
+    });
   });
 
   suite("Markdown Content Generation", () => {

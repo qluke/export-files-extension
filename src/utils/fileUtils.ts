@@ -101,12 +101,18 @@ export class FileExporter {
 
     // Check ignore list, support wildcard matching
     for (const pattern of this.config.ignore) {
-      if (
-        this.matchPattern(basename, pattern) ||
-        this.matchPattern(relativePath, pattern) ||
-        filePath.includes(pattern)
-      ) {
+      // Check if basename matches the pattern
+      if (this.matchPattern(basename, pattern)) {
         return true;
+      }
+
+      // Check if any part of the relative path matches the pattern
+      // This ensures "out" matches "out" directory but not "layout.tsx"
+      const pathParts = relativePath.split(path.sep);
+      for (const part of pathParts) {
+        if (this.matchPattern(part, pattern)) {
+          return true;
+        }
       }
     }
 
